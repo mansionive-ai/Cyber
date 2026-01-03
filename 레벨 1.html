@@ -1,0 +1,780 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>이야기 페이지</title>
+
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+  import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-database.js";
+  
+  const firebaseConfig = {
+    apiKey: "AIzaSyA-hTZp8wS4yYfd1oiWMD34HRAuTlFi0SE",
+    authDomain: "dream-time-22821.firebaseapp.com",
+    databaseURL: "https://cyberspace-8411e-default-rtdb.firebaseio.com/",
+    projectId: "dream-time-22821",
+    storageBucket: "dream-time-22821.firebasestorage.app",
+    messagingSenderId: "875159793316",
+    appId: "1:875159793316:web:247f91b4eaa2460fe4c031"
+  };
+  
+  const app = initializeApp(firebaseConfig);
+  const database = getDatabase(app);
+  
+  window.firebaseDB = database;
+  window.firebaseRef = ref;
+  window.firebaseGet = get;
+</script>
+
+
+<style>
+  html, body {
+    height: 100%;
+    margin: 0;
+    font-family: system-ui, -apple-system, Roboto, 'Noto Sans KR', sans-serif;
+    background: linear-gradient(120deg,#0f172a,#0b1220);
+    color: #fff;
+  }
+ .wrap {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  text-align: center;
+  padding: 2rem;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+  .card {
+    background: none;
+    backdrop-filter: none;
+    padding: 0;
+    box-shadow: none;
+  }
+  audio { display: none; }
+
+  #backBtn {
+    position: fixed;
+    top: 5px;
+    left: 5px;
+    padding: 8px 16px;
+    font-size: 18px;
+    z-index: 1000;
+    background: rgba(51, 65, 85, 0.8);
+    border: none;
+    color: #fff;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.3s;
+  }
+  #backBtn:hover {
+    background: rgba(71, 85, 105, 0.9);
+  }
+
+  #continueBtn {
+    margin-top: 1rem;
+    padding: 0.75rem 1.5rem;
+    background: #3b82f6;
+    border: none;
+    color: #fff;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background 0.3s;
+  }
+  #continueBtn:hover {
+    background: #2563eb;
+  }
+
+  #codeInput {
+    padding: 0.75rem;
+    font-size: 16px;
+    border: 2px solid #475569;
+    border-radius: 6px;
+    background: #1e293b;
+    color: #fff;
+    margin-top: 1rem;
+    width: 200px;
+    text-align: center;
+  }
+  #codeInput:focus {
+    outline: none;
+    border-color: #3b82f6;
+  }
+
+  #submitBtn {
+    margin-top: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: #10b981;
+    border: none;
+    color: #fff;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background 0.3s;
+  }
+  #submitBtn:hover {
+    background: #059669;
+  }
+
+  #msg {
+    margin-top: 0.5rem;
+    opacity: 0.8;
+    color: #ef4444;
+    font-weight: bold;
+  }
+
+  .choice-btn {
+    display: block;
+    margin: 0.75rem auto;
+    padding: 0.75rem 1.5rem;
+    background: #6366f1;
+    border: none;
+    color: #fff;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background 0.3s;
+    min-width: 250px;
+  }
+  .choice-btn:hover {
+    background: #4f46e5;
+  }
+
+  video {
+    max-width: 100%;
+    border-radius: 8px;
+  }
+</style>
+</head>
+<body>
+
+<button id="backBtn">←</button>
+
+<div class="wrap">
+  <div class="card" id="card"></div>
+
+  <audio id="bgm" loop preload="auto">
+    <source src="./bgm.mp3" type="audio/mpeg">
+  </audio>
+  <audio id="sfx" preload="auto"></audio>
+</div>
+
+<div id="confirmPopup" style="
+  display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+  background:rgba(0,0,0,0.7); backdrop-filter:blur(4px);
+  align-items:center; justify-content:center; z-index:2000;">
+
+  <div style="background:#1e293b; padding:30px; border-radius:12px; text-align:center; box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
+    <p style="font-size:18px; margin-bottom:20px;">이어하기가 존재합니다.<br>정말로 새로 시작합니까?</p>
+    <button id="yesBtn" style="margin-right:10px; padding:10px 20px; background:#ef4444; border:none; color:#fff; border-radius:6px; cursor:pointer; font-size:16px;">네</button>
+    <button id="noBtn" style="padding:10px 20px; background:#6b7280; border:none; color:#fff; border-radius:6px; cursor:pointer; font-size:16px;">아니요</button>
+  </div>
+</div>
+
+<script>
+const audio = document.getElementById('bgm');
+const sfx = document.getElementById('sfx');
+const wrap = document.querySelector('.wrap');
+
+let currentPage = 0;
+let pageHistory = [];  
+let audioUnlocked = false;  
+let playerName = ""; 
+
+const defaultImageStyle = "width:250px; margin-top:-100px;";
+
+const pages = {
+ 
+  1: '사용자와의 직접 연결을 시작합니다.',
+2: '동기화 진행 중… 73% … 81%',
+3: '100%',
+4: '연결 완료',
+5: '사용자에게 악성 바이러스 주입.',
+6: '완료',
+7: '남은 생명 활동 시간',
+8: '120 시간',
+9: '악성바이러스를 제거하시겠습니까?',
+10: '확인되었습니다.',
+11: '축하드립니다. 당신은 이제 120시간 이후 #$%로 변해 #$%#$%',
+12: '경고, 경고',
+13: '침입자 감#$%#$기화#$%#$%패',
+14: '백신, 가동합니다.',
+15: '사용자의 뇌에서 종양 감지. 120시간 후 생명 활동 정지 예정 ',
+16: '종양 소멸 방법<br>병원 방문 치료.. 불가능.<br>120시간 이전의 사망.. 불가능.<br>치료제 발견.. 유일한 해결책',
+17: '목표 지정: 『악성 프로그램 치료제』 <br>치료제를 구하기 위한 여정을 시작하겠습니까?',
+18: '임시 프로젝트 명: 치료제를 찾아라 <br> 가이드라인을 바로 시작합니다.',
+19: ' ',
+20:'레벨 원, 수고하셨습니다.',
+100: '121 24 58 91 27 71 ██ ███',  
+
+102: 'ㅘㅓ██ㅣㅐ<br>ㅓㅔ██ㅐㅣ', 
+
+104: 'C Y █ W █ H █ S',
+
+106: '[속보] 절대 #$%#$ 금지 현재 무차별적으로 #$%# 되고 있는 $%#$를 $%#$면 █████뒤에 $%#$다는 #$%#$입니다.',
+
+108: ' ',
+
+
+};
+
+
+
+const pageImages = {
+  14: "./기본.jpg",
+ 15: "./기본.jpg",
+ 16: "./기본.jpg",
+ 17: "./기본.jpg",
+ 18: "./기본.jpg",
+ 20: "./기본.jpg"
+
+ 
+};
+
+const pageImageStyles = {
+  0: "width:350px; margin-top:10px;",
+  1: "width:250px; margin-top:0px; transform:translateX(-240px);"
+};
+
+const pageTextStyles = {
+  0: "margin-top:1rem;",
+1: "margin-top:0px; color:red;",
+2: "margin-top:0px; color:red;",
+3: "margin-top:0px; color:red;",
+4: "margin-top:0px; color:red;",
+5: "margin-top:0px; color:red;",
+6: "margin-top:0px; color:red;",
+7: "margin-top:0px; color:red;",
+  8: "margin-top:0px; color:red;",
+9: "margin-top:0px; color:red;",
+10: "margin-top:0px; color:red;",
+11: "margin-top:0px; color:red;",
+  12: "margin-top:0px; color:red;",
+13: "margin-top:0px; color:red;"
+};
+
+
+
+
+//페이지별 선택지
+const pageChoices = {
+  9: [
+    { text: '아니요' , goto: 10},
+    { text: '아니요' , goto: 10},
+ { text: '아니요', goto: 10},
+ { text: '아니요', goto: 10 },
+  ],
+
+ 17: [
+    { text: '네' , goto: 18 },
+    { text: '네' , goto: 18 },
+ { text: '네' , goto: 18},
+ { text: '네' , goto: 18 },
+  ],
+
+ 19: [
+    { text: 'A' , goto: 100 },
+    { text: 'B' , goto: 102 },
+ { text: 'C' , goto: 104},
+ { text: 'D' , goto: 106 },
+ { text: 'ABCD' , goto: 108}
+  ]
+
+
+
+};
+
+
+
+
+
+//브금
+const pageBGMs = {
+  14: "./하이.mp3",
+  52: "./브금/bgm3.mp3"
+
+
+};
+
+// 효과음
+const pageSFX = {
+1: "./1.mp3"
+
+};
+
+//영상
+const pageVideos = {
+  100000: "./영상.mp4"
+};
+
+// 영상 스타일
+const pageVideoStyles = {
+  10000: "width:500px; margin-top:20px;"
+};
+
+function showConfirmPopup() {
+  const popup = document.getElementById("confirmPopup");
+  popup.style.display = "flex";
+
+  document.getElementById("yesBtn").onclick = () => {
+    localStorage.removeItem("currentPage");
+    localStorage.removeItem("pageHistory");
+    localStorage.removeItem("solvedCodes");  
+    localStorage.removeItem("playerName");   
+    currentPage = 1;
+    pageHistory = [];
+    playerName = "";  
+    popup.style.display = "none";
+    showPage();
+  };
+
+  document.getElementById("noBtn").onclick = () => {
+    popup.style.display = "none";
+  };
+}
+
+
+const codePages = [
+100,102,104,106,108 
+];
+
+
+const sensitivePagesCache = {};
+const sensitivePageIds = [101,103,105,107,109];
+
+function showPage() {
+  const card = document.getElementById('card');
+  const backBtn = document.getElementById("backBtn");
+  const saved = localStorage.getItem("currentPage");
+
+
+if (sensitivePageIds.includes(currentPage)) {
+  if (sensitivePagesCache[currentPage]) {
+    const pageData = sensitivePagesCache[currentPage];
+    
+   
+    let imageHTML = '';
+    if (pageImages[currentPage]) {
+      imageHTML = `<img src="${pageImages[currentPage]}" style="${pageImageStyles[currentPage] || defaultImageStyle}" oncontextmenu="return false;" draggable="false">`;
+    }
+    
+    card.innerHTML = `${imageHTML}<p style="margin-top:0px;">${pageData.text}</p>`;
+    if (currentPage === 0) backBtn.style.display = "none";
+    else backBtn.style.display = "block";
+  } else {
+    
+    const dbRef = window.firebaseRef(window.firebaseDB, 'sensitivePages/' + currentPage);
+    window.firebaseGet(dbRef)
+      .then((snapshot) => {
+        const pageData = snapshot.val();
+        sensitivePagesCache[currentPage] = pageData;
+        
+      
+        let imageHTML = '';
+        if (pageImages[currentPage]) {
+          imageHTML = `<img src="${pageImages[currentPage]}" style="${pageImageStyles[currentPage] || defaultImageStyle}" oncontextmenu="return false;" draggable="false">`;
+        }
+        
+        card.innerHTML = `${imageHTML}<p style="margin-top:0px;">${pageData.text}</p>`;
+        if (currentPage === 0) backBtn.style.display = "none";
+        else backBtn.style.display = "block";
+      })
+      .catch((error) => {
+        console.error("Firebase 오류:", error);
+        card.innerHTML = `<p style="color:#ef4444;">페이지 로드 오류</p>`;
+      });
+  }
+  return;
+}
+ const pageData = pages[currentPage];
+  let pageText = typeof pageData === 'object' ? pageData.text : pageData;
+  if (playerName) {
+    pageText = pageText.replace(/\[name\]/g, playerName);
+  }
+  
+  if (currentPage === 0) backBtn.style.display = "none";
+  else backBtn.style.display = "block";
+
+  if (currentPage === 0) {
+    card.innerHTML = `
+
+      <p style="margin-top:1rem;">
+    
+        <span style="color:red;">
+         SYSTEM ONLINE.
+        </span>
+        <br>
+      </p>
+      ${saved && saved > 0 ? `<button id="continueBtn">처음부터 하기</button>` : ""}
+    `;
+    if (saved && saved > 0) {
+      document.getElementById("continueBtn").addEventListener("click", (e) => {
+        e.stopPropagation();
+        showConfirmPopup();
+      });
+    }
+    return;
+  }
+
+ 
+ if (!pageData) {
+    card.innerHTML = `<p style="color:#ef4444;">페이지 ${currentPage}가 존재하지 않습니다.</p>`;
+    return;
+}
+     
+
+if (!pages[currentPage]) {
+    card.innerHTML = "마지막 페이지입니다.";
+    return;
+}
+
+
+if (pageBGMs[currentPage]) {
+  if (audio.src !== new URL(pageBGMs[currentPage], window.location.href).href) {
+    audio.pause();
+    audio.src = pageBGMs[currentPage];
+    localStorage.setItem("lastBGM", pageBGMs[currentPage]);  // 마지막 BGM 저장
+    audio.play().catch(() => {});
+  }
+}
+
+  
+  if (pageSFX[currentPage]) {
+    sfx.src = pageSFX[currentPage];
+    sfx.play().catch(() => {});
+  }
+
+
+  let textStyle = pageTextStyles[currentPage];
+  if (!textStyle) {
+    textStyle = pageImages[currentPage] ? "margin-top:50px;" : "margin-top:0px;";
+  }
+
+
+if (codePages.includes(currentPage)) {
+
+  const solvedCodes = JSON.parse(localStorage.getItem("solvedCodes") || "[]");
+  
+  if (solvedCodes.includes(currentPage)) {
+  
+    currentPage++;
+    localStorage.setItem("currentPage", currentPage);
+    showPage();
+    return;
+  }
+  
+  card.innerHTML = `
+    ${pageVideos[currentPage] ? `<video id="pageVideo" loop style="${pageVideoStyles[currentPage] || 'width:500px;'}"><source src="${pageVideos[currentPage]}" type="video/mp4"></video>` : ""}
+  ${pageImages[currentPage] ? `<img src="${pageImages[currentPage]}" style="${pageImageStyles[currentPage] || defaultImageStyle}" oncontextmenu="return false;" draggable="false">` : ""}
+    <p style="${textStyle}">${pageText}</p>
+    <input type="text" id="codeInput" placeholder="코드 입력"><br>
+    <button id="submitBtn">확인</button>
+    <p id="msg"></p>
+  `;
+  
+
+  if (pageVideos[currentPage]) {
+    const video = document.getElementById('pageVideo');
+    if (video) {
+      video.muted = !audioUnlocked;
+      video.play().catch(() => {
+        video.muted = true;
+        video.play().catch(() => {});
+      });
+    }
+  }
+  
+const codeInput = document.getElementById('codeInput');
+const submitBtn = document.getElementById('submitBtn');
+
+
+codeInput.addEventListener('click', (e) => {
+  e.stopPropagation();
+});
+
+const checkCode = (e) => {
+  e.stopPropagation();
+  const entered = codeInput.value.trim();
+  const msg = document.getElementById('msg');
+  
+
+  const dbRef = window.firebaseRef(window.firebaseDB, 'codes/' + currentPage);
+  window.firebaseGet(dbRef)
+    .then((snapshot) => {
+      const correctCodes = snapshot.val();
+      
+      if (correctCodes && correctCodes.includes(entered)) {
+  
+        const solvedCodes = JSON.parse(localStorage.getItem("solvedCodes") || "[]");
+        if (!solvedCodes.includes(currentPage)) {
+          solvedCodes.push(currentPage);
+          localStorage.setItem("solvedCodes", JSON.stringify(solvedCodes));
+        }
+        
+        currentPage++;
+        localStorage.setItem("currentPage", currentPage);
+        showPage();
+      } else {
+      
+        msg.textContent = "코드가 틀렸습니다!";
+        codeInput.value = '';
+        codeInput.focus();
+      }
+    })
+    .catch((error) => {
+      console.error("Firebase 오류:", error);
+      msg.textContent = "오류가 발생했습니다.";
+    });
+};
+
+submitBtn.addEventListener('click', checkCode);
+codeInput.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') {
+    checkCode(e);
+  }
+});
+setTimeout(() => codeInput.focus(), 100);
+return;
+}
+
+  if (pageChoices[currentPage]) {
+    let choicesHTML = '';
+    pageChoices[currentPage].forEach((choice, index) => {
+      choicesHTML += `<button class="choice-btn" data-goto="${choice.goto}">${choice.text}</button>`;
+    });
+
+    card.innerHTML = `
+      ${pageVideos[currentPage] ? `<video id="pageVideo" loop style="${pageVideoStyles[currentPage] || 'width:500px;'}"><source src="${pageVideos[currentPage]}" type="video/mp4"></video>` : ""}
+    ${pageImages[currentPage] ? `<img src="${pageImages[currentPage]}" style="${pageImageStyles[currentPage] || defaultImageStyle}" oncontextmenu="return false;" draggable="false">` : ""}
+<p style="${textStyle}">${pageText}</p>      <div style="margin-top: 1.5rem;">
+        ${choicesHTML}
+      </div>
+    `;
+
+  
+    if (pageVideos[currentPage]) {
+      const video = document.getElementById('pageVideo');
+      if (video) {
+        video.muted = !audioUnlocked; 
+        video.play().catch(() => {
+      
+          video.muted = true;
+          video.play().catch(() => {});
+        });
+      }
+    }
+
+
+    document.querySelectorAll('.choice-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        pageHistory.push(currentPage);
+        currentPage = parseInt(btn.dataset.goto);
+        localStorage.setItem("currentPage", currentPage);
+        localStorage.setItem("pageHistory", JSON.stringify(pageHistory));
+        showPage();
+      });
+    });
+    return;
+  }
+
+
+
+  if (currentPage === 158) {
+    card.innerHTML = `
+    ${pageImages[currentPage] ? `<img src="${pageImages[currentPage]}" style="${pageImageStyles[currentPage] || defaultImageStyle}" oncontextmenu="return false;" draggable="false">` : ""}
+<p style="${textStyle}">${pageText}</p>      <input type="text" id="nameInput" placeholder="이름 입력" maxlength="10"><br>
+      <button id="nameSubmitBtn">확인</button>
+    `;
+
+    const nameInput = document.getElementById('nameInput');
+    const nameSubmitBtn = document.getElementById('nameSubmitBtn');
+
+    const submitName = (e) => {
+      e.stopPropagation();
+      const name = nameInput.value.trim();
+      if (name) {
+        playerName = name;
+        localStorage.setItem("playerName", name);
+        pageHistory.push(currentPage);
+        currentPage++;
+        localStorage.setItem("currentPage", currentPage);
+        localStorage.setItem("pageHistory", JSON.stringify(pageHistory));
+        showPage();
+      } else {
+        alert("이름을 입력해주세요!");
+        nameInput.focus();
+      }
+    };
+
+    nameSubmitBtn.addEventListener('click', submitName);
+    
+    nameInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        submitName(e);
+      }
+    });
+
+    setTimeout(() => nameInput.focus(), 100);
+    return;
+  }
+
+
+else {
+    card.innerHTML = `
+      ${pageVideos[currentPage] ? `<video id="pageVideo" loop style="${pageVideoStyles[currentPage] || 'width:500px;'}"><source src="${pageVideos[currentPage]}" type="video/mp4"></video>` : ""}
+   ${pageImages[currentPage] ? `<img src="${pageImages[currentPage]}" style="${pageImageStyles[currentPage] || defaultImageStyle}" oncontextmenu="return false;" draggable="false">` : ""}
+<p style="${textStyle}">${pageText}</p>
+    `;
+
+  
+    if (pageVideos[currentPage]) {
+      const video = document.getElementById('pageVideo');
+      if (video) {
+        video.muted = !audioUnlocked;
+        video.play().catch(() => {
+          video.muted = true;
+          video.play().catch(() => {});
+        });
+      }
+    }
+  }
+}
+wrap.addEventListener('click', () => {
+
+  if (currentPage === 20) return;
+ 
+  if (codePages.includes(currentPage)) {
+    if (pageHistory.length > 0) {
+      currentPage = pageHistory.pop();
+      localStorage.setItem("currentPage", currentPage);
+      localStorage.setItem("pageHistory", JSON.stringify(pageHistory));
+      showPage();
+    }
+    return;
+  }
+  
+  if (pageChoices[currentPage] || currentPage === 158) return;
+  
+
+  if (sensitivePageIds.includes(currentPage)) {
+    const pageData = sensitivePagesCache[currentPage];
+    if (pageData && pageData.goto) {
+      pageHistory.push(currentPage);
+      currentPage = pageData.goto;
+      localStorage.setItem("currentPage", currentPage);
+      localStorage.setItem("pageHistory", JSON.stringify(pageHistory));
+      showPage();
+    }
+    return;
+  }
+  
+  if (currentPage === 0) {
+   const saved = localStorage.getItem("currentPage");
+    audio.play().catch(() => {});
+    audioUnlocked = true;
+    
+   if (saved && saved > 0) {
+  currentPage = parseInt(saved);
+  const savedHistory = localStorage.getItem("pageHistory");
+  if (savedHistory) {
+    pageHistory = JSON.parse(savedHistory);
+  }
+  const savedName = localStorage.getItem("playerName");
+  if (savedName) {
+    playerName = savedName;
+  }
+
+      const lastBGM = localStorage.getItem("lastBGM");
+      if (lastBGM) {
+        audio.src = lastBGM;
+        audio.play().catch(() => {});
+      }
+    } else {
+      
+      currentPage = 1;
+      localStorage.setItem("currentPage", currentPage);
+    }
+    
+    showPage();
+    return;
+  }
+  const pageData = pages[currentPage];
+  
+
+  if (typeof pageData === 'object' && pageData.goto) {
+    pageHistory.push(currentPage);
+    currentPage = pageData.goto;
+    localStorage.setItem("currentPage", currentPage);
+    localStorage.setItem("pageHistory", JSON.stringify(pageHistory));
+    showPage();
+    return;
+  }
+
+
+
+  if (pages[currentPage + 1]) {
+    pageHistory.push(currentPage); 
+    currentPage++;
+    localStorage.setItem("currentPage", currentPage);
+    localStorage.setItem("pageHistory", JSON.stringify(pageHistory)); 
+    showPage();
+  }
+});
+
+document.getElementById("backBtn").addEventListener("click", () => {
+  if (pageHistory.length > 0) {
+ 
+    currentPage = pageHistory.pop();
+    localStorage.setItem("currentPage", currentPage);
+    localStorage.setItem("pageHistory", JSON.stringify(pageHistory));
+    showPage();
+  } else if (currentPage > 0) {
+ 
+    currentPage--;
+    localStorage.setItem("currentPage", currentPage);
+    showPage();
+  }
+});
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "ArrowLeft") {
+    if (pageHistory.length > 0) {
+      currentPage = pageHistory.pop();
+      localStorage.setItem("currentPage", currentPage);
+      localStorage.setItem("pageHistory", JSON.stringify(pageHistory));
+      showPage();
+    } else if (currentPage > 0) {
+      currentPage--;
+      localStorage.setItem("currentPage", currentPage);
+      showPage();
+    }
+  } else if (e.key === "ArrowRight" && currentPage !== 20 && !codePages.includes(currentPage) && !pageChoices[currentPage] && currentPage !== 158) {
+    // 오른쪽 화살표를 눌렀을 때 20페이지가 아니면 다음으로 이동
+    const pageData = pages[currentPage];
+    
+    if (typeof pageData === 'object' && pageData.goto) {
+      pageHistory.push(currentPage);
+      currentPage = pageData.goto;
+    } else if (pages[currentPage + 1]) {
+      pageHistory.push(currentPage);
+      currentPage++;
+    }
+    
+    localStorage.setItem("currentPage", currentPage);
+    localStorage.setItem("pageHistory", JSON.stringify(pageHistory));
+    showPage();
+  }
+});
+
+showPage(); // 앱 시작 시 첫 페이지 표시
+showPage(); 
+</script>
+</body>
+</html>
