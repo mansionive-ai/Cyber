@@ -210,7 +210,8 @@ const pages = {
 17: '목표 지정: 『악성 프로그램 치료제』 <br>치료제를 구하기 위한 여정을 시작하겠습니까?',
 18: '임시 프로젝트 명: 치료제를 찾아라 <br> 사이버 가이드라인을 지금부터 시작합니다.',
 19: ' ',
-20:'수고하셨습니다.',
+
+
 100: '121 24 58 91 27 71 ██ ███',  
 
 102: 'ㅘㅓ██ㅣㅐ<br>ㅓㅔ██ㅐㅣ', 
@@ -219,7 +220,7 @@ const pages = {
 
 106: '[속보] 절대 #$%#$ 금지 현재 무차별적으로 #$%# 되고 있는 $%#$를 $%#$면 ████간 뒤에 $%#$다는 #$%#$입니다.',
 
-108: ' ',
+108: 'ABCD',
 
 
 };
@@ -232,7 +233,6 @@ const pageImages = {
  16: "./기본.jpg",
  17: "./기본.jpg",
  18: "./기본.jpg",
- 20: "./기본.jpg"
 
  
 };
@@ -272,10 +272,8 @@ const pageChoices = {
   ],
 
  17: [
-    { text: '네' , goto: 18 },
-    { text: '네' , goto: 18 },
- { text: '네' , goto: 18},
- { text: '네' , goto: 18 },
+    { text: '네' , goto: 18 }
+
   ],
 
  19: [
@@ -339,9 +337,9 @@ function showConfirmPopup() {
   };
 }
 
-
+//코드
 const codePages = [
-100,102,104,106,108 
+100,102,104,106,108,20
 ];
 
 
@@ -648,7 +646,7 @@ else {
 }
 wrap.addEventListener('click', () => {
 
-  if (currentPage === 20) return;
+  if (currentPage === 109) return;
  
   if (codePages.includes(currentPage)) {
     if (pageHistory.length > 0) {
@@ -755,8 +753,8 @@ document.addEventListener("keydown", (e) => {
       localStorage.setItem("currentPage", currentPage);
       showPage();
     }
-  } else if (e.key === "ArrowRight" && currentPage !== 20 && !codePages.includes(currentPage) && !pageChoices[currentPage] && currentPage !== 158) {
-    // 오른쪽 화살표를 눌렀을 때 20페이지가 아니면 다음으로 이동
+  } else if (e.key === "ArrowRight" && currentPage !== 109 && !codePages.includes(currentPage) && !pageChoices[currentPage] && currentPage !== 158) {
+   
     const pageData = pages[currentPage];
     
     if (typeof pageData === 'object' && pageData.goto) {
@@ -773,7 +771,7 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-showPage(); // 앱 시작 시 첫 페이지 표시
+showPage();
 showPage(); 
 </script>
 </body>
